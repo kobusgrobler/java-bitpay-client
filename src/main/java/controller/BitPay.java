@@ -20,6 +20,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.bitcoinj.core.ECKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -33,7 +35,10 @@ import java.util.List;
 
 public class BitPay {
 
-	private static final BitPayLogger _log = new BitPayLogger(BitPayLogger.DEBUG);
+    /**
+     * Removed BitPayLogger and use slf4j instead so we can use this in server environment.
+     */
+	private static final Logger _log = LoggerFactory.getLogger(BitPay.class);
 
 	private static final String BITPAY_API_VERSION = "2.0.0";
     private static final String BITPAY_PLUGIN_INFO = "BitPay Java Client " + BITPAY_API_VERSION;

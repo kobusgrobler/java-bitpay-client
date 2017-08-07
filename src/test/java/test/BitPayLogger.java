@@ -1,4 +1,4 @@
-package controller;
+package test;
 
 public class BitPayLogger {
 

@@ -2,7 +2,6 @@ package test;
 
 import controller.BitPay;
 import controller.BitPayException;
-import controller.BitPayLogger;
 import controller.KeyUtils;
 import model.*;
 import org.bitcoinj.core.ECKey;
@@ -321,7 +320,7 @@ public class BitPayTest {
 		} catch (BitPayException e) {
 			e.printStackTrace();
 		}
-		assert invoices != null;
+		assertTrue(invoices != null);
 		assertTrue(invoices.size() > 0);
 	}
 

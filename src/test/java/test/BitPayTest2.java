@@ -2,7 +2,6 @@ package test;
 
 import controller.BitPay;
 import controller.BitPayException;
-import controller.BitPayLogger;
 import model.Invoice;
 import org.junit.Before;
 import org.junit.BeforeClass;
