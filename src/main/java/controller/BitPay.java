@@ -10,12 +10,12 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -23,6 +23,7 @@ import org.bitcoinj.core.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -33,7 +34,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
-public class BitPay {
+public class BitPay implements Closeable {
 
     /**
      * Removed BitPayLogger and use slf4j instead so we can use this in server environment.
@@ -52,7 +53,7 @@ public class BitPay {
 
     public static final String PUBLIC_NO_TOKEN = "";
 
-    private HttpClient _httpClient = null;
+    private CloseableHttpClient _httpClient = null;
     private String _baseUrl = BITPAY_URL;
     private ECKey _ecKey = null;
     private String _identity = "";
@@ -182,7 +183,6 @@ public class BitPay {
 
         _baseUrl = envUrl;
         _httpClient = HttpClientBuilder.create().build();
-
         this.tryGetAccessTokens();
     }
 
@@ -833,8 +833,8 @@ public class BitPay {
             get.addHeader("x-bitpay-plugin-info", BITPAY_PLUGIN_INFO);
             get.addHeader("x-accept-version", BITPAY_API_VERSION);
 
-
-            _log.info(get.toString());
+            if (_log.isDebugEnabled())
+                _log.debug(get.toString());
             return _httpClient.execute(get);
 
         } catch (URISyntaxException e) {
@@ -865,7 +865,8 @@ public class BitPay {
             post.addHeader("x-bitpay-plugin-info", BITPAY_PLUGIN_INFO);
             post.addHeader("Content-Type", "application/json");
 
-        	_log.info(post.toString());
+            if (_log.isDebugEnabled())
+        	    _log.debug(post.toString());
             return _httpClient.execute(post);
 
         } catch (UnsupportedEncodingException e) {
@@ -902,8 +903,8 @@ public class BitPay {
                 delete.addHeader("x-signature", KeyUtils.sign(_ecKey, fullURL));
                 delete.addHeader("x-identity", KeyUtils.bytesToHex(_ecKey.getPubKey()));
             }
-
-        	_log.info(delete.toString());
+            if (_log.isDebugEnabled())
+        	    _log.debug(delete.toString());
             return _httpClient.execute(delete);
 
         } catch (URISyntaxException e) {
@@ -927,7 +928,8 @@ public class BitPay {
             String jsonString;
 
             jsonString = EntityUtils.toString(entity, "UTF-8");
-            _log.info("RESPONSE: " + jsonString);
+            if (_log.isDebugEnabled())
+                _log.debug("RESPONSE: " + jsonString);
 
             ObjectMapper mapper = new ObjectMapper();
 
@@ -976,4 +978,10 @@ public class BitPay {
         return Min + (int) (Math.random() * ((Max - Min) + 1)) + "";
     }
 
+    @Override
+    public void close() throws IOException {
+        if (_httpClient != null) {
+            _httpClient.close();
+        }
+    }
 }
