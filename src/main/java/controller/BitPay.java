@@ -324,6 +324,67 @@ public class BitPay implements Closeable {
         return _tokenCache.get(id);
     }
 
+    public List<Bill> getBills() throws BitPayException {
+
+        final List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
+        HttpResponse response = this.get("bills", params);
+        List<Bill> bills;
+        try {
+            bills = Arrays.asList(new ObjectMapper().readValue(this.responseToJsonString(response),
+                    Bill[].class));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bills) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bills) : " + e.getMessage());
+        }
+        return bills;
+    }
+
+    public List<Subscription> getSubscriptions() throws BitPayException {
+        final List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
+        HttpResponse response = this.get("subscriptions", params);
+        List<Subscription> subscriptions;
+        try {
+            subscriptions = Arrays.asList(new ObjectMapper().readValue(this.responseToJsonString(response),
+                    Subscription[].class));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        }
+        return subscriptions;
+    }
+
+    public Subscription createSubscription(Subscription subscription) throws BitPayException {
+        subscription.setToken(getAccessToken(FACADE_MERCHANT));
+        subscription.setGuid(this.getGuid());
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        String json;
+
+        try {
+            json = mapper.writeValueAsString(subscription);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to serialize Subscription object : " + e.getMessage());
+        }
+
+        HttpResponse response = this.postWithSignature("subscriptions", json);
+
+        try {
+            subscription = mapper.readerForUpdating(subscription).readValue(this.responseToJsonString(response));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        }
+
+        this.cacheAccessToken(subscription.getId(), subscription.getToken());
+        return subscription;
+    }
+
     /**
      * Create a BitPay invoice.
      *
