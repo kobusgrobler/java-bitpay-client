@@ -13,6 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -324,6 +325,11 @@ public class BitPay implements Closeable {
         return _tokenCache.get(id);
     }
 
+    /**
+     * Get the list of Bills
+     * @return the list of bills
+     * @throws BitPayException if it fails
+     */
     public List<Bill> getBills() throws BitPayException {
 
         final List<BasicNameValuePair> params = new ArrayList<>();
@@ -341,6 +347,11 @@ public class BitPay implements Closeable {
         return bills;
     }
 
+    /**
+     * Get the list of subscriptions
+     * @return a list of Subscriptions
+     * @throws BitPayException if it fails
+     */
     public List<Subscription> getSubscriptions() throws BitPayException {
         final List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
@@ -357,6 +368,65 @@ public class BitPay implements Closeable {
         return subscriptions;
     }
 
+    /**
+     * Get a Subscription by id
+     * @param subscriptionId the subscription id
+     * @return a Subscription if found
+     * @throws BitPayException
+     */
+    public Subscription getSubscription(String subscriptionId) throws BitPayException {
+        final List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
+
+        HttpResponse response = this.get("subscriptions/" + subscriptionId, params);
+
+        Subscription subscription;
+        try {
+            subscription = new ObjectMapper().readValue(this.responseToJsonString(response), Subscription.class);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        }
+
+        return subscription;
+    }
+
+    /**
+     * Updates a subscription.
+     * @param subscription subscription to update
+     * @return the updated subscription
+     * @throws BitPayException if it fails
+     */
+    public Subscription updateSubscription(Subscription subscription) throws BitPayException {
+        ObjectMapper mapper = new ObjectMapper();
+        String json;
+        try {
+            json = mapper.writeValueAsString(subscription);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to serialize Subscription object : " + e.getMessage());
+        }
+
+        HttpResponse response = put("subscriptions/"+subscription.getId(), json,true);
+
+        try {
+            subscription = mapper.readerForUpdating(subscription).readValue(this.responseToJsonString(response));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
+        }
+
+        this.cacheAccessToken(subscription.getId(), subscription.getToken());
+        return subscription;
+    }
+
+    /**
+     * Create a new subscription.
+     * @param subscription the subscription to create
+     * @return the created subscription
+     * @throws BitPayException if it fails
+     */
     public Subscription createSubscription(Subscription subscription) throws BitPayException {
         subscription.setToken(getAccessToken(FACADE_MERCHANT));
         subscription.setGuid(this.getGuid());
@@ -909,6 +979,34 @@ public class BitPay implements Closeable {
 
     private HttpResponse get(String uri) throws BitPayException {
         return this.get(uri, null, false);
+    }
+
+    private HttpResponse put(String uri, String json, boolean signatureRequired) throws BitPayException {
+        try {
+            HttpPut put = new HttpPut(_baseUrl + uri);
+
+            put.setEntity(new ByteArrayEntity(json.getBytes("UTF8")));
+
+            if (signatureRequired) {
+                put.addHeader("x-signature", KeyUtils.sign(_ecKey, _baseUrl + uri + json));
+                put.addHeader("x-identity", KeyUtils.bytesToHex(_ecKey.getPubKey()));
+            }
+
+            put.addHeader("x-accept-version", BITPAY_API_VERSION);
+            put.addHeader("x-bitpay-plugin-info", BITPAY_PLUGIN_INFO);
+            put.addHeader("Content-Type", "application/json");
+
+            if (_log.isDebugEnabled())
+                _log.debug(put.toString());
+            return _httpClient.execute(put);
+
+        } catch (UnsupportedEncodingException e) {
+            throw new BitPayException("Error: PUT failed\n" + e.getMessage());
+        } catch (ClientProtocolException e) {
+            throw new BitPayException("Error: PUT failed\n" + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error: PUT failed\n" + e.getMessage());
+        }
     }
 
     private HttpResponse post(String uri, String json, boolean signatureRequired) throws BitPayException {

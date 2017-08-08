@@ -13,12 +13,16 @@ import utils.DateSerializer;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class Subscription {
+    public static final String STATUS_DRAFT = "draft";
+    public static final String STATUS_ACTIVE = "active";
+    public static final String STATUS_CANCELLED = "cancelled";
+
     private String guid = "";
     private String token = "";
     private String id;
 
     private String status;
-    private String schedule;
+    private String schedule="monthly";
     private long nextDelivery;
     private Bill billData;
 
