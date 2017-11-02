@@ -15,6 +15,7 @@ import java.util.List;
  * @author kobus
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Bill {
     public static final String STATUS_COMPLETE = "complete";
 	public static final String STATUS_PAID = "paid";
@@ -28,22 +29,22 @@ public class Bill {
 	private String status;
     private String subscription;
     private String currency;
-    private String number = "";
-    private String name = "";
-    private String address1 = "";
-    private String address2 = "";
-    private String city = "";
-    private String state = "";
-    private String zip = "";
-    private String country = "";
-    private String email = "";
-    private String phone = "";
+    private String number;
+    private String name;
+    private String address1;
+    private String address2;
+    private String city;
+    private String state;
+    private String zip;
+    private String country;
+    private String email;
+    private String phone;
     private long createdDate;
     private long dueDate;
 
-    private boolean delivered;
-    private boolean archived;
-    private boolean showRate;
+    private Boolean delivered;
+    private Boolean archived;
+    private Boolean showRate;
 
     private List<BillItem> items;
 
@@ -67,6 +68,7 @@ public class Bill {
     }
 
     @JsonSerialize(using= DateSerializer.class)
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public long getDueDate() {
         return dueDate;
     }
@@ -77,6 +79,7 @@ public class Bill {
     }
 
     @JsonSerialize(using= DateSerializer.class)
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public long getCreatedDate() {
         return createdDate;
     }
@@ -166,20 +169,20 @@ public class Bill {
         this.name = name;
     }
 
-    public boolean isArchived() {
+    public Boolean isArchived() {
         return archived;
     }
 
-    public void setArchived(boolean archived) {
+    public void setArchived(Boolean archived) {
         this.archived = archived;
     }
 
 
-    public boolean isShowRate() {
+    public Boolean isShowRate() {
         return showRate;
     }
 
-    public void setShowRate(boolean showRate) {
+    public void setShowRate(Boolean showRate) {
         this.showRate = showRate;
     }
 
@@ -200,11 +203,11 @@ public class Bill {
         this.number = number;
     }
 
-    public boolean isDelivered() {
+    public Boolean isDelivered() {
         return delivered;
     }
 
-    public void setDelivered(boolean delivered) {
+    public void setDelivered(Boolean delivered) {
         this.delivered = delivered;
     }
 

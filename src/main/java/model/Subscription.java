@@ -12,6 +12,7 @@ import utils.DateSerializer;
  * Created by kobus on 2017/08/08.
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Subscription {
     public static final String STATUS_DRAFT = "draft";
     public static final String STATUS_ACTIVE = "active";
@@ -69,6 +70,7 @@ public class Subscription {
     }
 
     @JsonSerialize(using= DateSerializer.class)
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public long getNextDelivery() {
         return nextDelivery;
     }

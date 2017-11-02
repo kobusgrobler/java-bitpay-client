@@ -410,4 +410,40 @@ public class Invoice {
   		this._flags = _flags;
   	}
 
+	@Override
+	public String toString() {
+		return "Invoice{" +
+				"_guid='" + _guid + '\'' +
+				", _token='" + _token + '\'' +
+				", _price=" + _price +
+				", _currency='" + _currency + '\'' +
+				", _posData='" + _posData + '\'' +
+				", _notificationURL='" + _notificationURL + '\'' +
+				", _transactionSpeed='" + _transactionSpeed + '\'' +
+				", _fullNotifications=" + _fullNotifications +
+				", _notificationEmail='" + _notificationEmail + '\'' +
+				", _redirectURL='" + _redirectURL + '\'' +
+				", _orderId='" + _orderId + '\'' +
+				", _itemDesc='" + _itemDesc + '\'' +
+				", _itemCode='" + _itemCode + '\'' +
+				", _physical=" + _physical +
+				", _buyer=" + _buyer +
+				", _id='" + _id + '\'' +
+				", _url='" + _url + '\'' +
+				", _status='" + _status + '\'' +
+				", _btcPrice='" + _btcPrice + '\'' +
+				", _invoiceTime='" + _invoiceTime + '\'' +
+				", _expirationTime=" + _expirationTime +
+				", _currentTime=" + _currentTime +
+				", _btcPaid='" + _btcPaid + '\'' +
+				", _btcDue='" + _btcDue + '\'' +
+				", _transactions=" + _transactions +
+				", _rate='" + _rate + '\'' +
+				", _exRates=" + _exRates +
+				", _exceptionStatus='" + _exceptionStatus + '\'' +
+				", _paymentUrls=" + _paymentUrls +
+				", _flags=" + _flags +
+				", _extendedNotifications=" + _extendedNotifications +
+				'}';
+	}
 }

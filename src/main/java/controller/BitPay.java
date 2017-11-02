@@ -326,18 +326,123 @@ public class BitPay implements Closeable {
     }
 
     /**
+     * Creates a bill
+     * @param bill the bill
+     * @return the created bill
+     * @throws BitPayException if it fails
+     */
+    public Bill createBill(Bill bill) throws BitPayException {
+        bill.setToken(getAccessToken(FACADE_MERCHANT));
+        bill.setGuid(getGuid());
+        ObjectMapper mapper = new ObjectMapper();
+        String json;
+        try {
+            json = mapper.writeValueAsString(bill);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to serialize Bill object : " + e.getMessage());
+        }
+
+        HttpResponse response = postWithSignature("bills", json);
+
+        try {
+            bill = mapper.readerForUpdating(bill).readValue(responseToJsonString(response));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bill) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bill) : " + e.getMessage());
+        }
+
+        cacheAccessToken(bill.getId(), bill.getToken());
+        return bill;
+    }
+
+    /**
+     * Updates a bill.
+     * @param bill bill to update
+     * @return the updated bill
+     * @throws BitPayException if it fails
+     */
+    public Bill updateBill(Bill bill) throws BitPayException {
+        ObjectMapper mapper = new ObjectMapper();
+        String json;
+        try {
+            json = mapper.writeValueAsString(bill);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to serialize Bill object : " + e.getMessage());
+        }
+
+        HttpResponse response = put("bills/"+bill.getId(), json,true);
+
+        try {
+            bill = mapper.readerForUpdating(bill).readValue(responseToJsonString(response));
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bill) : " + e.getMessage());
+        } catch (IOException e) {
+            throw new BitPayException("Error - failed to deserialize BitPay server response (Bill) : " + e.getMessage());
+        }
+
+        cacheAccessToken(bill.getId(), bill.getToken());
+        return bill;
+    }
+
+    public void deleteBill(Bill bill) throws BitPayException {
+        final List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("token", getAccessToken(FACADE_MERCHANT)));
+        HttpResponse response = delete("bills/"+bill.getId(), params);
+        if (response.getStatusLine().getStatusCode() != 200) {
+            throw new BitPayException("Bill Deletion failed with status "+response.getStatusLine().getStatusCode());
+        }
+    }
+
+    public Bill deliverBill(Bill bill) throws BitPayException {
+    /*    final List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
+        HttpResponse response = get("bills/"+billId+"/deliveries", params);*/
+        ObjectMapper mapper = new ObjectMapper();
+        bill.setToken(getAccessToken(FACADE_MERCHANT));
+        String json;
+        try {
+            json = mapper.writeValueAsString(bill);
+        } catch (JsonProcessingException e) {
+            throw new BitPayException("Error - failed to serialize Bill object : " + e.getMessage());
+        }
+        HttpResponse response = postWithSignature("bills/"+bill.getId()+"/deliveries",
+             json);
+        if (response.getStatusLine().getStatusCode() != 200) {
+            throw new BitPayException("Bill Delivery failed with status "+response.getStatusLine().getStatusCode());
+        }
+             //  "{ \"token\":\""+getAccessToken(FACADE_MERCHANT)+"\"}");
+        return null;
+    }
+
+    /**
      * Get the list of Bills
      * @return the list of bills
      * @throws BitPayException if it fails
      */
     public List<Bill> getBills() throws BitPayException {
+        return getBills(null,null,null);
+    }
 
+    /**
+     * Get the list of Bills
+     * @param status filter by bill status
+     * @return the list of bills
+     * @throws BitPayException if it fails
+     */
+    public List<Bill> getBills(String status,String dateStart,String dateEnd) throws BitPayException {
         final List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
-        HttpResponse response = this.get("bills", params);
+        params.add(new BasicNameValuePair("token", getAccessToken(FACADE_MERCHANT)));
+        if (status != null)
+            params.add(new BasicNameValuePair("status", status));
+        if (dateStart != null)
+            params.add(new BasicNameValuePair("dateStart", dateStart));
+        if (dateEnd != null)
+            params.add(new BasicNameValuePair("dateEnd", dateEnd));
+        HttpResponse response = get("bills", params);
         List<Bill> bills;
         try {
-            bills = Arrays.asList(new ObjectMapper().readValue(this.responseToJsonString(response),
+            bills = Arrays.asList(new ObjectMapper().readValue(responseToJsonString(response),
                     Bill[].class));
         } catch (JsonProcessingException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Bills) : " + e.getMessage());
@@ -353,12 +458,24 @@ public class BitPay implements Closeable {
      * @throws BitPayException if it fails
      */
     public List<Subscription> getSubscriptions() throws BitPayException {
+        return getSubscriptions(null);
+    }
+
+    /**
+     * Get the list of subscriptions
+     * @param status filter by status
+     * @return a list of Subscriptions
+     * @throws BitPayException if it fails
+     */
+    public List<Subscription> getSubscriptions(String status) throws BitPayException {
         final List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
-        HttpResponse response = this.get("subscriptions", params);
+        params.add(new BasicNameValuePair("token", getAccessToken(FACADE_MERCHANT)));
+        if (status != null)
+            params.add(new BasicNameValuePair("status", status));
+        HttpResponse response = get("subscriptions", params);
         List<Subscription> subscriptions;
         try {
-            subscriptions = Arrays.asList(new ObjectMapper().readValue(this.responseToJsonString(response),
+            subscriptions = Arrays.asList(new ObjectMapper().readValue(responseToJsonString(response),
                     Subscription[].class));
         } catch (JsonProcessingException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
@@ -376,13 +493,13 @@ public class BitPay implements Closeable {
      */
     public Subscription getSubscription(String subscriptionId) throws BitPayException {
         final List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("token", this.getAccessToken(FACADE_MERCHANT)));
+        params.add(new BasicNameValuePair("token", getAccessToken(FACADE_MERCHANT)));
 
-        HttpResponse response = this.get("subscriptions/" + subscriptionId, params);
+        HttpResponse response = get("subscriptions/" + subscriptionId, params);
 
         Subscription subscription;
         try {
-            subscription = new ObjectMapper().readValue(this.responseToJsonString(response), Subscription.class);
+            subscription = new ObjectMapper().readValue(responseToJsonString(response), Subscription.class);
         } catch (JsonProcessingException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
         } catch (IOException e) {
@@ -410,14 +527,14 @@ public class BitPay implements Closeable {
         HttpResponse response = put("subscriptions/"+subscription.getId(), json,true);
 
         try {
-            subscription = mapper.readerForUpdating(subscription).readValue(this.responseToJsonString(response));
+            subscription = mapper.readerForUpdating(subscription).readValue(responseToJsonString(response));
         } catch (JsonProcessingException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
         } catch (IOException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
         }
 
-        this.cacheAccessToken(subscription.getId(), subscription.getToken());
+        cacheAccessToken(subscription.getId(), subscription.getToken());
         return subscription;
     }
 
@@ -429,7 +546,7 @@ public class BitPay implements Closeable {
      */
     public Subscription createSubscription(Subscription subscription) throws BitPayException {
         subscription.setToken(getAccessToken(FACADE_MERCHANT));
-        subscription.setGuid(this.getGuid());
+        subscription.setGuid(getGuid());
 
         ObjectMapper mapper = new ObjectMapper();
 
@@ -441,10 +558,10 @@ public class BitPay implements Closeable {
             throw new BitPayException("Error - failed to serialize Subscription object : " + e.getMessage());
         }
 
-        HttpResponse response = this.postWithSignature("subscriptions", json);
+        HttpResponse response = postWithSignature("subscriptions", json);
 
         try {
-            subscription = mapper.readerForUpdating(subscription).readValue(this.responseToJsonString(response));
+            subscription = mapper.readerForUpdating(subscription).readValue(responseToJsonString(response));
         } catch (JsonProcessingException e) {
             throw new BitPayException("Error - failed to deserialize BitPay server response (Subscription) : " + e.getMessage());
         } catch (IOException e) {

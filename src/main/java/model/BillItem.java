@@ -1,12 +1,14 @@
 package model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  *
  * Created by kobus on 2017/08/08.
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BillItem {
 
     private String description;
@@ -29,6 +31,7 @@ public class BillItem {
         this.price = price;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public int getQuantity() {
         return quantity;
     }
